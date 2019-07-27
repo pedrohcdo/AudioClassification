@@ -13,11 +13,13 @@ def stft(y, fs, step=1, window=None, nfft=None):
     p = 0
     mat = np.empty((0, nfft//2 + 1), np.complex64)
 
+
     while p+nw<=len(y):
+        
         shifted_window = np.concatenate((np.zeros(p, np.float), window, np.zeros(len(y) - (p+nw))))
         
-        Y = np.fft.rfft(y * shifted_window, n=nfft)
-       
+        Y = np.fft.rfft((y * shifted_window)[p:], n=nfft)
+
         mat = np.append(mat, [Y], axis = 0)
         
         p += step
@@ -29,6 +31,6 @@ def stft(y, fs, step=1, window=None, nfft=None):
     #
     mat = mat.T
     mat *= np.sqrt(1.0 / window.sum()**2)
-
+    
     #
     return (freqs, time, mat)

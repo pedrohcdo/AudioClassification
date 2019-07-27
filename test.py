@@ -15,10 +15,10 @@ from signal_processing.fft import slow_fft, reduced_slow_fft, radix_2_fft
 from signal_processing.stft import stft
 
 # Generate audio with frequencies
-frequencies = [10, 20, 40]
-time = 1
-fs = 100
-audio = generate_signal(frequencies, time, fs)
+time = 3
+fs = 200
+audio = generate_signal([10, 20, 40, 50, 60, 70], time, fs, interpolate=True)
+audio += generate_signal([20, 30, 50, 60, 70, 80], time, fs, interpolate=True)
 
 # 
 # play_audio(audio, fs)
@@ -59,12 +59,13 @@ def compare_fft_methods(signal, fs):
 
 
 # Compare Short Time Fourier Transform 
-f, t, Zxx = signal.stft(audio, fs=fs, noverlap=20, window=signal.triang(30), 
-                        nperseg=30, boundary=None, padded=False, nfft=60)
+f, t, Zxx = signal.stft(audio, fs=fs, noverlap=20, window=np.hanning(30), 
+                        nperseg=30, boundary=None, padded=False, nfft=2000)
 
-f2, t2, Zxx2 = stft(audio, fs, step=1, window=signal.triang(30), nfft=30)
+f2, t2, Zxx2 = stft(audio, fs, step=10, window=np.hanning(30), nfft=2000)
 
-
+print(len(Zxx))
+print(len(Zxx))
 
 
 plt.figure(1)
