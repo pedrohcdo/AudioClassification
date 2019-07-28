@@ -10,15 +10,19 @@ from python_speech_features import mfcc, logfbank
 from scipy import signal
 
 #
-from signal_processing.helper import generate_signal, play_audio
+from signal_processing.helper import AudioGenerator, play_audio
 from signal_processing.fft import slow_fft, reduced_slow_fft, radix_2_fft
 from signal_processing.stft import stft
 
 # Generate audio with frequencies
+freqs = np.array([10, 30, 70, 90])
 time = 3
 fs = 200
-audio = generate_signal([10, 20, 40, 50, 60, 70], time, fs, interpolate=True)
-audio += generate_signal([20, 30, 50, 60, 70, 80], time, fs, interpolate=True)
+
+sound_gen = AudioGenerator(time, fs)
+sound_gen.generate_signal(freqs)
+sound_gen.generate_progressive_signal(20, 5, energy=0.2)
+audio = sound_gen.generate()
 
 # 
 # play_audio(audio, fs)
@@ -59,13 +63,16 @@ def compare_fft_methods(signal, fs):
 
 
 # Compare Short Time Fourier Transform 
-f, t, Zxx = signal.stft(audio, fs=fs, noverlap=20, window=np.hanning(30), 
-                        nperseg=30, boundary=None, padded=False, nfft=2000)
+nwin = 50
+step = 10
 
-f2, t2, Zxx2 = stft(audio, fs, step=10, window=np.hanning(30), nfft=2000)
+f, t, Zxx = signal.stft(audio, fs=fs, noverlap=nwin-step, window=np.hanning(nwin), 
+                        nperseg=nwin, boundary=None, padded=False, nfft=2000)
 
-print(len(Zxx))
-print(len(Zxx))
+f2, t2, Zxx2 = stft(audio, fs, step=step, window=np.hanning(nwin), nfft=2000)
+
+print(len(t))
+print(len(t2))
 
 
 plt.figure(1)
