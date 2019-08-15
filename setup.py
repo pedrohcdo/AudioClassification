@@ -19,6 +19,7 @@ setup(
         'numpy', 
         'jupyter',
         'matplotlib',
+        'audioread',
         'librosa',
         'simpleaudio',
         'scipy'

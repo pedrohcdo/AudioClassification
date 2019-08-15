@@ -31,6 +31,12 @@ def stft(y, fs, step=1, window=None, nfft=None):
     #
     mat = mat.T
     mat *= np.sqrt(1.0 / window.sum()**2)
+
+    mat = (mat**2) / fs
     
+    #ref = 32768
+    #s_mag = np.abs(mat) * 2 / window.sum()
+    #mat = 2595 * np.log10(mat / 700 + 1)
+
     #
     return (freqs, time, mat)
