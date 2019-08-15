@@ -11,7 +11,7 @@ from scipy import signal
 
 #
 from signal_processing.helper import AudioGenerator, play_audio
-from signal_processing.fft import slow_fft, reduced_slow_fft, radix_2_fft
+from signal_processing.fft import slow_fft, reduced_slow_fft, radix2_fft
 from signal_processing.stft import stft
 
 import librosa

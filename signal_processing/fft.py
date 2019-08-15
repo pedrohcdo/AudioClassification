@@ -60,7 +60,7 @@ def reduced_slow_fft(signal):
 
     return abs(np.dot(a, signal)) / n
 
-def radix_2_fft(x):
+def radix2_fft(x):
     r"""
     This function computes the one-dimensional discrete Fourier
     Transform (DFT) using Cooley–Tukey FFT Method (radix-2 FFT).
@@ -77,8 +77,8 @@ def radix_2_fft(x):
     """
     N = len(x)
     if N <= 1: return x
-    even = radix_2_fft(x[0::2])
-    odd =  radix_2_fft(x[1::2])
+    even = radix2_fft(x[0::2])
+    odd =  radix2_fft(x[1::2])
     T = [np.exp(-2j*np.pi*k/N)*odd[k] for k in range(N//2)]
     R = [even[k] + T[k] for k in range(N//2)] + [even[k] - T[k] for k in range(N//2)]
     return np.asarray(R, np.float)

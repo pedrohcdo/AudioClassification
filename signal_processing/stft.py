@@ -1,4 +1,5 @@
 import numpy as np
+from .utils import frame_signal
 
 def stft(y, fs, step=1, window=None, nfft=None):
     '''
@@ -10,19 +11,11 @@ def stft(y, fs, step=1, window=None, nfft=None):
     if nfft is None:
         nfft = nw
 
-    p = 0
     mat = np.empty((0, nfft//2 + 1), np.complex64)
 
-
-    while p+nw<=len(y):
-        
-        shifted_window = np.concatenate((np.zeros(p, np.float), window, np.zeros(len(y) - (p+nw))))
-        
-        Y = np.fft.rfft((y * shifted_window)[p:], n=nfft)
-
-        mat = np.append(mat, [Y], axis = 0)
-        
-        p += step
+    framed_signal = frame_signal(y, window, step)
+    
+    mat = np.fft.rfft(framed_signal, n=nfft)
 
     #
     freqs = np.fft.rfftfreq(nfft, 1 / fs)
@@ -32,7 +25,7 @@ def stft(y, fs, step=1, window=None, nfft=None):
     mat = mat.T
     mat *= np.sqrt(1.0 / window.sum()**2)
 
-    mat = (mat**2) / fs
+    #mat = (mat**2) / fs
     
     #ref = 32768
     #s_mag = np.abs(mat) * 2 / window.sum()
