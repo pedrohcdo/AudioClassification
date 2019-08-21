@@ -61,6 +61,10 @@ def test_stride_signal():
     ##
     assert np.array_equal(signal, np.array([10, 9, 8, 7, 6, 5, 4, 3, 2, 1]))
 
+a = 3 * np.exp(-2j * 0.1)
+b = np.conjugate(a)
+
+np.corrcoef(0, 0)
 
 
-print(frame_signal([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], [1, 2, 3, 4], 1, padded=False))
+print(a * b, abs(a**2))

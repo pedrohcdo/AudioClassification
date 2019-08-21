@@ -22,7 +22,8 @@ setup(
         'audioread',
         'librosa',
         'simpleaudio',
-        'scipy'
+        'scipy',
+        'tensorflow==2.0.0b1'
     ],
     #include_package_data=True,
     license='MIT',

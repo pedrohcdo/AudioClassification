@@ -1,7 +1,7 @@
 import numpy as np
 from .utils import frame_signal
 
-def stft(y, fs, step=1, window=None, nfft=None):
+def stft(y, fs, step=1, window=None, nfft=None, psd=False):
     '''
     Coding..
     '''
@@ -21,6 +21,9 @@ def stft(y, fs, step=1, window=None, nfft=None):
     freqs = np.fft.rfftfreq(nfft, 1 / fs)
     time = np.arange(nw//2, len(y) - nw//2 + 1, step)/float(fs)
 
+    #
+    if psd:
+        mat = mat * np.conjugate(mat)
     #
     mat = mat.T
     mat *= np.sqrt(1.0 / window.sum()**2)

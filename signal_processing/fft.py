@@ -1,6 +1,6 @@
 import numpy as np
 
-def slow_fft(signal, n=None):
+def slow_fft(signal, nfft=None):
     r"""
     For the purpose of study, for a faster method to use cache or more optimized 
     methods such as radix-2 FFT.
@@ -16,28 +16,28 @@ def slow_fft(signal, n=None):
         Frequencies strength
     """
     signal = np.asarray(signal, dtype=float)
-    if n is None:
-        n = signal.shape[0]
+    if nfft is None:
+        nfft = signal.shape[0]
 
     # Adjust
-    if n > signal.shape[0]:
-        signal = np.append(signal, np.zeros(n - signal.shape[0]))
-    signal = signal[:n]
+    if nfft > signal.shape[0]:
+        signal = np.append(signal, np.zeros(nfft - signal.shape[0]))
+    signal = signal[:nfft]
 
     # Freq segments
-    time = np.arange(n)
-    output = np.zeros(n//2 + 1, np.complex)
+    time = np.arange(nfft)
+    output = np.zeros(nfft//2 + 1, np.complex)
 
-    for f in range(n//2 + 1):
+    for f in range(nfft//2 + 1):
         # pi*-2j -> complete rotation
         # f -> frequency 1=one rotation
         # time/n -> transform time to 1 second range
-        output[f] = sum(signal * np.exp(-2j * np.pi * f * time / n))
+        output[f] = sum(signal * np.exp(-2j * np.pi * f * time / nfft))
     #
     return output
 
 
-def reduced_slow_fft(signal):
+def reduced_slow_fft(signal, nfft=None):
     r"""
     For the purpose of study, for a faster method to use cache or more optimized 
     methods such as radix-2 FFT.
@@ -53,12 +53,17 @@ def reduced_slow_fft(signal):
         Frequencies strength
     """
     signal = np.asarray(signal, dtype=float)
+    if nfft is None:
+        nfft = signal.shape[0]
 
-    n = signal.shape[0]
+    # Adjust
+    if nfft > signal.shape[0]:
+        signal = np.append(signal, np.zeros(nfft - signal.shape[0]))
+    signal = signal[:nfft]
 
-    a = np.exp(-2j * np.pi * np.arange(n//2 + 1).reshape((n//2+1, 1)) * np.arange(n) / n)
+    a = np.exp(-2j * np.pi * np.arange(nfft//2 + 1).reshape((nfft//2+1, 1)) * np.arange(nfft) / nfft)
 
-    return abs(np.dot(a, signal)) / n
+    return abs(np.dot(a, signal)) / nfft
 
 def radix2_fft(x):
     r"""
@@ -82,3 +87,7 @@ def radix2_fft(x):
     T = [np.exp(-2j*np.pi*k/N)*odd[k] for k in range(N//2)]
     R = [even[k] + T[k] for k in range(N//2)] + [even[k] - T[k] for k in range(N//2)]
     return np.asarray(R, np.float)
+
+
+def powfft(frames, nfft):
+    return 1.0 / nfft * np.square(reduced_slow_fft(frames, nfft))

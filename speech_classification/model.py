@@ -2,7 +2,7 @@ import os
 from scipy.io import wavfile
 import pandas as pd
 import matplotlib.pyplot as plt
-import numpy as np
+import numpy as np 
 from keras.layers import Conv2D, MaxPool2D, Flatten, LSTM
 from keras.layers import Dropout, Dense, TimeDistributed
 from keras.models import Sequential
@@ -11,32 +11,8 @@ from sklearn.utils.class_weight import compute_class_weight
 from tqdm import tqdm
 from python_speech_features import mfcc, logfbank
 import librosa
- 
-df = pd.read_csv('instruments.csv')
-df.set_index('fname', inplace=True)
 
-for f in df.index:
-    rate, signal = wavfile.read('wavfiles/'+f)
-    df.at[f, 'length'] = signal.shape[0]/rate
-
-classes = list(np.unique(df.label))
-class_dist = df.groupby(['label'])['length'].mean()
-
-#fig, ax = plt.subplots()
-#ax.set_title('Class Distribution', y=1.08)
-#ax.pie(class_dist, labels=class_dist.index, autopct='%1.1f%%',
-#       shadow=False, startangle=90)
-#ax.axis('equal')
-#plt.show()
-
-df.reset_index(inplace=True)
-
-
-signals = {}
-fft = {}
-fbanks = {}
-fbanks2 = {}
-mfccs = {}
+from .dataset import LabeledDataset
 
 def calc_fft(y, rate):
     n = len(y)
@@ -87,19 +63,57 @@ def plot_fbank(fbank):
             axes[x,y].get_yaxis().set_visible(False)
             i += 1
 
+df = pd.read_csv('../instruments.csv')
+
+
+# Prepare Dataset
+ds = LabeledDataset(df.label, '../wavfiles', df.fname)
+ds.downsample()
+
+# Add length to df
+df.set_index('fname', inplace=True)
+
+for f in df.index:
+    rate, signal = wavfile.read('../wavfiles/'+f)
+    df.at[f, 'length'] = signal.shape[0]/rate
+
+# Get all classes and mean size
+classes = list(np.unique(df.label))
+class_dist = df.groupby(['label'])['length'].mean()
+
+
+
+
+
+print(ds.labels[0] + ", " + ds.files[0])
+#fig, ax = plt.subplots()
+#ax.set_title('Class Distribution', y=1.08)
+#ax.pie(class_dist, labels=class_dist.index, autopct='%1.1f%%',
+#       shadow=False, startangle=90)
+#ax.axis('equal')
+#plt.show()
+
+df.reset_index(inplace=True)
+
+
+signals = {}
+fft = {}
+fbanks = {}
+fbanks2 = {}
+mfccs = {}
 
 for c in classes:
     wav_file = df[df.label == c].iloc[0,0]
     #print(df[df.label == c])
 
-    signal, rate = librosa.load('wavfiles/' + wav_file, sr=44100)
+    signal, rate = librosa.load('../wavfiles/' + wav_file, sr=44100)
     
     signals[c] = signal
     fft[c] = calc_fft(signal, rate)
     
-    fbanks[c] = logfbank(signal[:rate], rate, nfilt=26, nfft=1103)
+    fbanks[c] = logfbank(signal[:rate], rate, nfilt=26, nfft=1103).T
 
-    mffcs[c] = mfcc(signal, rate, numcep=13, nfilt=26, nfft=1103)
+    mfccs[c] = mfcc(signal, rate, numcep=13, nfilt=26, nfft=1103).T
     
 #plot_signals(signals)
 #plt.show()

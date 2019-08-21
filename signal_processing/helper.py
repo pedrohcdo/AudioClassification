@@ -3,12 +3,20 @@ import simpleaudio as sa
 
 class AudioGenerator:
     
-    def __init__(self, time, fs=44100, clamp_energy=False):
+    def __init__(self, time, fs=44100, clamp_energy=False, normalize=True):
         self.time = time
         self.fs = fs
         self.samples = self.time * self.fs
         self.clamp_energy = clamp_energy
+        self.normalize = normalize
         self.components = np.empty((0, self.time * self.fs), np.float)
+        
+    @classmethod
+    def from_signal(cls, signal, fs):
+        signal = np.array(signal).ravel()
+        generator = cls(signal.shape[0] // fs, fs=fs)
+        generator.components = np.append(generator.components, [signal[:generator.samples]], axis = 0)
+        return generator
 
     def generate_progressive_signal(self, freq, inc, energy=1):
         r"""
@@ -87,12 +95,15 @@ class AudioGenerator:
             signals = np.clip(signals, a_min=-1, a_max=1)
 
         # Convert float signal to short signal
-        audio = signals * (2**15 - 1) / np.max(np.abs(signals))
+        scale = 1
+        if self.normalize:
+            scale = 1 / np.max(np.abs(signals))
+        audio = signals * (2**15 - 1) * scale
         audio = audio.astype(np.int16)
         #
         return audio
 
-def play_audio(signal, fs):
+def play_audio(audio_generator):
     r"""
     Play an signal with 'simpleaudio'
 
@@ -103,5 +114,5 @@ def play_audio(signal, fs):
     fs : int, optional
         Sampling frequency
     """
-    play_obj = sa.play_buffer(signal, 1, 2, fs)
+    play_obj = sa.play_buffer(audio_generator.generate(), 1, 2, audio_generator.fs)
     play_obj.wait_done()

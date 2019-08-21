@@ -17,14 +17,42 @@ from signal_processing.stft import stft
 import librosa
 
 
+
+from speech_classification.dataset import LabeledDataset
+
+
+df = pd.read_csv('./instruments.csv')
+
+
+# Prepare Dataset
+ds = LabeledDataset(df.label, './wavfiles', df.fname)
+ds.downsample()
+
+
+label, (signal, rate) = ds.load_file('5388d14d.wav')
+
+ag = AudioGenerator.from_signal(signal, fs=rate)
+ag.normalize = False
+
+play_audio(ag)
+
+
+print(label)
+print(rate)
+print(np.max(signal))
+    
+
+'''
+#
+
 # Generate audio with frequencies
-freqs = np.array([40, 80])
+freqs = np.array([80])
 time = 3
 fs = 200
 
 sound_gen = AudioGenerator(time, fs)
 sound_gen.generate_signal(freqs)
-sound_gen.generate_progressive_signal(20, 5, energy=0.2)
+#sound_gen.generate_progressive_signal(20, 5, energy=0.2)
 audio = sound_gen.generate()
 
 #audio, fs = librosa.load('wavfiles/0ed06544.wav')
@@ -74,13 +102,13 @@ def compare_fft_methods(signal, fs):
 #audio = np.append(audio[0], audio[1:] - 1 * audio[:-1])
 
 # Compare Short Time Fourier Transform 
-nwin = int(fs * 1) # 25ms
+nwin = int(fs * 0.5) # 25ms
 step = int(fs * 0.1) # 10ms
 
 f, t, Zxx = signal.stft(audio, fs=fs, noverlap=nwin-step, window=np.hamming(nwin), 
                         nperseg=nwin, boundary=None, padded=False, nfft=nwin)
 
-f2, t2, Zxx2 = stft(audio, fs, step=step, window=np.hamming(nwin), nfft=nwin)
+f2, t2, Zxx2 = stft(audio, fs, step=step, window=np.hamming(nwin), nfft=100)
 
 print(len(t))
 print(len(t2))
@@ -92,3 +120,4 @@ plt.pcolormesh(t, f, np.abs(Zxx), cmap='hot')
 plt.figure(2)
 plt.pcolormesh(t2, f2, np.abs(Zxx2), cmap='hot')
 plt.show()
+'''
