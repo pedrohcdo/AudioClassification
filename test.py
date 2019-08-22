@@ -27,10 +27,15 @@ from speech_classification.dataset import LabeledDataset
 '''
 
 
-a = AudioSynthesizer(1,8000)
-a.generate_progressive_signal(6000, 1)
-a.compact(1, 0.5, step=1)
+a = AudioSynthesizer(5,8000)
+a.generate_progressive_signal(2000, 1000/5)
+a.compact(1, -1, step=1)
+play_audio(a)
 
+
+a = AudioSynthesizer(5,8000)
+a.generate_progressive_signal(2000, 1000/5)
+a.compact(20, 0.3, step=1)
 play_audio(a)
 
 exit()

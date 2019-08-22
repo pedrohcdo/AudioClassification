@@ -53,6 +53,7 @@ class AudioSynthesizer:
             Generated signal
         """
         t = np.linspace(0, self.time, self.samples, False)
+        
         signal = np.sin((freq + t * inc) * t * 2 * np.pi) * energy
 
         # Add component
