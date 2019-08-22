@@ -39,9 +39,9 @@ def frame_signal(signal, window, step, padded=True):
     # Pad signal
     if padded:
         s_shape = stride_shape(signal, window_len, step)
-        pad_last = round((signal_len-1) / step) * step
+        pad_last = s_shape[0] * step
         if pad_last < signal_len:
-            pad_zeros = (pad_last + window_len) - signal_len
+            pad_zeros = ((pad_last+1) + window_len) - signal_len
             signal = np.concatenate((signal, np.zeros((pad_zeros,))))
     #
     frames = stride_signal(signal, stride_len=window_len, step=step)
@@ -60,11 +60,3 @@ def test_stride_signal():
     
     ##
     assert np.array_equal(signal, np.array([10, 9, 8, 7, 6, 5, 4, 3, 2, 1]))
-
-a = 3 * np.exp(-2j * 0.1)
-b = np.conjugate(a)
-
-np.corrcoef(0, 0)
-
-
-print(a * b, abs(a**2))

@@ -1,4 +1,5 @@
-from .helper import AudioGenerator, play_audio
+from .audio_synthesizer import AudioSynthesizer
+from .helper import play_audio
 from .fft import slow_fft
 from .stft import stft
 from .utils import frame_signal

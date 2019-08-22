@@ -1,3 +1,4 @@
+'''
 import numpy as np
 import simpleaudio as sa
 import os
@@ -8,9 +9,13 @@ import matplotlib.pyplot as plt
 from scipy.io import wavfile
 from python_speech_features import mfcc, logfbank
 from scipy import signal
-
+'''
 #
-from signal_processing.helper import AudioGenerator, play_audio
+from signal_processing.audio_synthesizer import AudioSynthesizer
+from signal_processing.helper import play_audio
+
+'''
+
 from signal_processing.fft import slow_fft, reduced_slow_fft, radix2_fft
 from signal_processing.stft import stft
 
@@ -19,8 +24,19 @@ import librosa
 
 
 from speech_classification.dataset import LabeledDataset
+'''
 
 
+a = AudioSynthesizer(1,8000)
+a.generate_progressive_signal(6000, 1)
+a.compact(1, 0.5, step=1)
+
+play_audio(a)
+
+exit()
+
+
+'''
 df = pd.read_csv('./instruments.csv')
 
 
@@ -31,7 +47,7 @@ ds.downsample()
 
 label, (signal, rate) = ds.load_file('5388d14d.wav')
 
-ag = AudioGenerator.from_signal(signal, fs=rate)
+ag = AudioSynthesizer.from_signal(signal, fs=rate)
 ag.normalize = False
 
 play_audio(ag)
@@ -40,7 +56,8 @@ play_audio(ag)
 print(label)
 print(rate)
 print(np.max(signal))
-    
+'''
+
 
 '''
 #
