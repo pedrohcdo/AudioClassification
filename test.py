@@ -3,16 +3,16 @@ import numpy as np
 import simpleaudio as sa
 import os
 from tqdm import tqdm
-import pandas as pd
-import numpy as np
+
+
 import matplotlib.pyplot as plt
 from scipy.io import wavfile
 from python_speech_features import mfcc, logfbank
 from scipy import signal
 '''
 #
-from signal_processing.audio_synthesizer import AudioSynthesizer
-from signal_processing.helper import play_audio
+#from signal_processing.audio_synthesizer import AudioSynthesizer
+#from signal_processing.helper import play_audio
 
 '''
 
@@ -25,6 +25,36 @@ import librosa
 
 from speech_classification.dataset import LabeledDataset
 '''
+
+
+import pandas as pd
+from scipy.io import wavfile
+import numpy as np
+from speech_classification.dataset import DFDataset
+from signal_processing.audio_synthesizer import AudioSynthesizer
+from signal_processing.helper import play_audio
+
+df_dataset = DFDataset(pd.read_csv('./instruments.csv'), './wavfiles', downsample=True, pruning_prop=0.3)
+result = df_dataset.get_random(10)
+for i in range(len(result.labels)):
+    label = result.labels[i]
+    (wave, rate) = result.waves[i]
+    print("Label: " + label)
+    audio = AudioSynthesizer.from_signal(wave, fs=rate)
+    play_audio(audio)
+
+    audio.compact(100, 0.3)
+    play_audio(audio)
+
+
+'''
+# 
+
+
+# Add length to df
+
+
+
 
 
 a = AudioSynthesizer(5,8000)
@@ -40,9 +70,8 @@ play_audio(a)
 
 exit()
 
-
 '''
-df = pd.read_csv('./instruments.csv')
+'''
 
 
 # Prepare Dataset

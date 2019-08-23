@@ -25,7 +25,8 @@ class AudioSynthesizer:
         # Convolve and remove components below the threshold 
         framed = frame_signal(signals, np.ones((precision,)), step)
         convolved = np.dot(framed, np.ones((framed.shape[1],)))
-        new_signal = convolved[abs(convolved)>threshold]
+        #new_signal = signals[:len(convolved)][abs(convolved)>threshold]
+        new_signal = signals
         # Reset attrs
         self.samples = new_signal.shape[0]        
         self.time = self.samples / self.fs
@@ -108,16 +109,18 @@ class AudioSynthesizer:
         # Clamp
         if self.clamp_energy:
             signals = np.clip(signals, a_min=-1, a_max=1)
-
+        
+        return signals
+    
+    def generate(self):
         # Convert float signal to short signal
+        signals = self.synthesise()
+
         scale = 1
         if self.normalize:
             scale = 1 / np.max(np.abs(signals))
-        
-        return signals * scale
-    
-    def generate(self):
-        audio = self.synthesise() * (2**15 - 1)
+
+        audio = signals * (2**15 - 1) * scale
         audio = audio.astype(np.int16)
         #
         return audio
