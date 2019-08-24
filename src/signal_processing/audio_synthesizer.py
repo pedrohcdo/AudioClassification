@@ -19,19 +19,17 @@ class AudioSynthesizer:
         generator.components = np.append(generator.components, [signal[:generator.samples]], axis = 0)
         return generator
     
-    def compact(self, precision, threshold, step=1):
+    def compacted(self, precision, threshold, step=1, normalized=False):
         # Synthesise
-        signals = self.synthesise()
+        signals = self.synthetized_signal()
         # Convolve and remove components below the threshold 
         framed = frame_signal(signals, np.ones((precision,)), step)
-        convolved = np.dot(framed, np.ones((framed.shape[1],)))
-        #new_signal = signals[:len(convolved)][abs(convolved)>threshold]
-        new_signal = signals
-        # Reset attrs
-        self.samples = new_signal.shape[0]        
-        self.time = self.samples / self.fs
-        # Set compacted signal
-        self.components = np.array([new_signal], dtype=np.float)
+        convolved = np.dot(abs(framed), np.ones((framed.shape[1],)))
+        if normalized:
+            convolved = convolved / np.max(convolved)
+        new_signal = signals[abs(convolved)>threshold]
+        #
+        return AudioSynthesizer.from_signal(new_signal, fs=self.fs)
 
     def generate_progressive_signal(self, freq, inc, energy=1):
         r"""
@@ -100,7 +98,7 @@ class AudioSynthesizer:
         # Add componet
         self.components = np.append(self.components, [signal], axis = 0)
 
-    def synthesise(self):
+    def synthetized_signal(self):
         # Mix signals
         signals = np.zeros(self.samples, np.float)
         for component in self.components:
@@ -114,7 +112,7 @@ class AudioSynthesizer:
     
     def generate(self):
         # Convert float signal to short signal
-        signals = self.synthesise()
+        signals = self.synthetized_signal()
 
         scale = 1
         if self.normalize:

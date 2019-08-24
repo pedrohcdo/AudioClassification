@@ -41,7 +41,8 @@ def frame_signal(signal, window, step, padded=True):
         s_shape = stride_shape(signal, window_len, step)
         pad_last = s_shape[0] * step
         if pad_last < signal_len:
-            pad_zeros = ((pad_last+1) + window_len) - signal_len
+            padd_steps = ceil((signal_len - pad_last) / step)
+            pad_zeros = (pad_last + padd_steps * step + window_len - 1) - signal_len
             signal = np.concatenate((signal, np.zeros((pad_zeros,))))
     #
     frames = stride_signal(signal, stride_len=window_len, step=step)

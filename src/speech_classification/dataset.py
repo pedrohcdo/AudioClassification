@@ -5,7 +5,6 @@ Created on Mon Aug 19 23:31:29 2019
 
 @author: pedro
 """
-
 from tqdm import tqdm
 import pandas as pd
 import librosa
@@ -14,6 +13,7 @@ import numpy as np
 import os
 import sys
 import collections
+from ..signal_processing.audio_synthesizer import AudioSynthesizer
 
 class Dataset:
     
@@ -56,7 +56,10 @@ class DFDataset(Dataset):
     FILENAME_COLUMN = 'fname'
     LABEL_COLUMN = 'label'
 
-    Subset = collections.namedtuple("Subset", ["labels", "waves"], verbose=False, rename=False) 
+    class Data():
+        def __init__(self, label, audio):
+            self.label = label
+            self.audio = audio
 
     def __init__(self, df, folder, downsample=False, pruning_prop=0.0):
         # Check consistency
@@ -85,8 +88,7 @@ class DFDataset(Dataset):
     def get_random(self, count, length_prob=1.0):
         assert length_prob<=1.0 + sys.float_info.epsilon and length_prob>=-sys.float_info.epsilon
         # Create prob distribution
-        labels = []
-        audios = []
+        datas = []
         for _ in range(count):
             classes_mlength = self.df.groupby(['label'])['length'].mean()
             pdist = classes_mlength / classes_mlength.sum()
@@ -104,9 +106,9 @@ class DFDataset(Dataset):
                 rand_index = np.random.randint(0, wave.shape[0] - wave_piece)
                 wave = wave[rand_index:rand_index+wave_piece]
             #
-            labels.append(label)
-            audios.append((wave, rate))
-        return DFDataset.Subset(labels=labels, waves=audios)
+            audio_synth = AudioSynthesizer.from_signal(wave, fs=rate)
+            datas.append(DFDataset.Data(label=label, audio=audio_synth))
+        return datas
 
 
         

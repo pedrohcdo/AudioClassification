@@ -25,26 +25,37 @@ import librosa
 
 from speech_classification.dataset import LabeledDataset
 '''
+#%%
+import sys
 
+# Fo run in jupyter extension
+import src
+__package__ = 'src'
 
+#
 import pandas as pd
 from scipy.io import wavfile
 import numpy as np
-from speech_classification.dataset import DFDataset
-from signal_processing.audio_synthesizer import AudioSynthesizer
-from signal_processing.helper import play_audio
+
+from .signal_processing.audio_synthesizer import AudioSynthesizer
+from .speech_classification.dataset import DFDataset
+from .signal_processing.helper import play_audio
+from .signal_processing.utils import frame_signal
+import librosa
+from scipy import signal
+import matplotlib.pyplot as plt
 
 df_dataset = DFDataset(pd.read_csv('./instruments.csv'), './wavfiles', downsample=True, pruning_prop=0.3)
 result = df_dataset.get_random(10)
-for i in range(len(result.labels)):
-    label = result.labels[i]
-    (wave, rate) = result.waves[i]
-    print("Label: " + label)
-    audio = AudioSynthesizer.from_signal(wave, fs=rate)
-    play_audio(audio)
+for data in result:
+    plt.plot(data.audio.synthetized_signal())
+    plt.plot(data.audio.compacted(100, 0.3).synthetized_signal())
+    plt.show()
 
-    audio.compact(100, 0.3)
-    play_audio(audio)
+
+
+
+
 
 
 '''
