@@ -4,30 +4,44 @@ from .utils import frame_signal
 
 class AudioSynthesizer:
     
-    def __init__(self, time, fs=44100, clamp_energy=False, normalize=True):
-        self.time = time
+    COMPACT_SCALE_NONE = 'none'
+    COMPACT_SCALE_MAX = 'max'
+    COMPACT_SCALE_DENSITY = 'density'
+
+    def __init__(self, samples, fs=44100, clamp_energy=False, normalize=True):
+        self.samples = samples
+        self.time = samples / fs
         self.fs = fs
-        self.samples = self.time * self.fs
         self.clamp_energy = clamp_energy
         self.normalize = normalize
-        self.components = np.empty((0, self.time * self.fs), np.float)
+        self.components = np.empty((0, self.samples), np.float)
         
     @classmethod
     def from_signal(cls, signal, fs):
         signal = np.array(signal).ravel()
-        generator = cls(signal.shape[0] // fs, fs=fs)
-        generator.components = np.append(generator.components, [signal[:generator.samples]], axis = 0)
+        generator = cls(len(signal), fs=fs)
+        generator.components = np.append(generator.components, [signal], axis = 0)
         return generator
     
-    def compacted(self, precision, threshold, step=1, normalized=False):
+    def compacted(self, precision, threshold, step=1, normalized=False, padded=True, scale='none'):
         # Synthesise
         signals = self.synthetized_signal()
         # Convolve and remove components below the threshold 
-        framed = frame_signal(signals, np.ones((precision,)), step)
-        convolved = np.dot(abs(framed), np.ones((framed.shape[1],)))
-        if normalized:
+        # ----------- CORRECT THE STEP CONVOLVE
+        framed = frame_signal(signals, np.ones((precision,)), 1, padded=padded)
+
+        #convolved = np.dot(abs(framed), np.ones((framed.shape[1],)).reshape(-1,1)).reshape((-1,))
+        convolved = np.sum(abs(framed), axis=1)
+        assert scale in [AudioSynthesizer.COMPACT_SCALE_NONE, 
+                        AudioSynthesizer.COMPACT_SCALE_DENSITY, 
+                        AudioSynthesizer.COMPACT_SCALE_MAX]
+        if scale == AudioSynthesizer.COMPACT_SCALE_MAX:
             convolved = convolved / np.max(convolved)
-        new_signal = signals[abs(convolved)>threshold]
+        elif scale == AudioSynthesizer.COMPACT_SCALE_DENSITY:
+            convolved = (convolved * len(signals)) / sum(abs(signals))
+        new_signal = signals[:len(convolved)][convolved>threshold]
+        
+        print(framed)
         #
         return AudioSynthesizer.from_signal(new_signal, fs=self.fs)
 

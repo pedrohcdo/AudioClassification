@@ -29,7 +29,7 @@ class Config:
         self.step = int(self.rate / 10)
 
 class FeatureGen:
-    def __init__():
+    def __init__(self, config):
         
         
         pass

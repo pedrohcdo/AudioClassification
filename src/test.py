@@ -38,19 +38,28 @@ from scipy.io import wavfile
 import numpy as np
 
 from .signal_processing.audio_synthesizer import AudioSynthesizer
-from .speech_classification.dataset import DFDataset
+from .speech_classification.dataset import DFDatasetGenerator
 from .signal_processing.helper import play_audio
 from .signal_processing.utils import frame_signal
 import librosa
 from scipy import signal
 import matplotlib.pyplot as plt
 
-df_dataset = DFDataset(pd.read_csv('./instruments.csv'), './wavfiles', downsample=True, pruning_prop=0.3)
-result = df_dataset.get_random(10)
+
+df_dataset = DFDatasetGenerator(pd.read_csv('./instruments.csv'), './wavfiles', downsample=True, pruning_prop=0.3)
+result = df_dataset.get_random(10, length_prob=0.5)
 for data in result:
-    plt.plot(data.audio.synthetized_signal())
-    plt.plot(data.audio.compacted(100, 0.3).synthetized_signal())
+    original = data.data
+    compacted = data.data.compacted(20, 10, normalized=True, 
+                                scale=AudioSynthesizer.COMPACT_SCALE_DENSITY)
+
+    plt.plot(original.synthetized_signal())
+    plt.plot(compacted.synthetized_signal())
     plt.show()
+
+    play_audio(original)
+    play_audio(compacted)
+
 
 
 
