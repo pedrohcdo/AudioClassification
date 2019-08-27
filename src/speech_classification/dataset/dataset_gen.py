@@ -29,6 +29,7 @@ class DFDatasetGenerator(Samples):
         super().__init__(folder, df.fname)
         if downsample:
             self.downsample()
+        self.classes = np.unique(df.label)
         #
         for _ in range(0, int(pruning_prop * len(df[DFDatasetGenerator.FILENAME_COLUMN]))):
             df.drop(np.random.choice(df.index), inplace=True)
@@ -37,7 +38,6 @@ class DFDatasetGenerator(Samples):
         self.config()
 
     def config(self):
-        print(self.df)
         self.df.set_index('fname', inplace=True)
         for filename in tqdm(self.df.index):
             signal, rate = self.load_file(filename)
@@ -47,7 +47,7 @@ class DFDatasetGenerator(Samples):
     def get_random(self, count, length_prob=1.0):
         assert length_prob<=1.0 + sys.float_info.epsilon and length_prob>=-sys.float_info.epsilon
         # Create prob distribution
-        dataset = Dataset()
+        dataset = Dataset(self.classes)
         for _ in range(count):
             classes_mlength = self.df.groupby(['label'])['length'].mean()
             pdist = classes_mlength / classes_mlength.sum()

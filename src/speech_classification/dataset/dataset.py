@@ -6,8 +6,9 @@ class Dataset():
             self.label = label
             self.data = data
 
-    def __init__(self):
+    def __init__(self, classes):
         self.datas = []
+        self.classes = classes
     
     def add_data(self, label, data):
         self.datas.append(Dataset.Data(label, data))

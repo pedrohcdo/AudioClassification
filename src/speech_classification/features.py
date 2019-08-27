@@ -18,6 +18,7 @@ from sklearn.utils.class_weight import compute_class_weight
 from tqdm import tqdm
 from python_speech_features import mfcc, logfbank
 import librosa
+from ..signal_processing.audio_synthesizer import AudioSynthesizer
 
 class Config:
     def __init__(self, mode='conv', nfilt=26, nfeat=13, nfft=512, rate=16000):
@@ -28,28 +29,30 @@ class Config:
         self.rate = rate
         self.step = int(self.rate / 10)
 
-class FeatureGen:
+class Features:
     def __init__(self, config):
-        
-        
-        pass
+        self.config = config
     
-    def build_rand_feat():
+    @classmethod
+    def extract_from(cls, config, dataset):
+        feat = Features(config)
         x = []
         y = []
         _min, _max = float('inf'), -float('inf')
-        for _ in tqdm(range(n_samples)):
-            rand_class = np.ranom.choice(class_dist.index, p=class_dist_prob)
-            file = np.random.choice(df[df.label==rand_class].index)
-            rate, wave = wavfile.read('../wavfiles/' + file)
-            label = df.at[file, 'label']
-            rand_index = np.random.randint(0, wav.shape[0] - config.step)
-            x_sample = mfcc(sample, rate, numcep=config.nfeat, 
+        for d in dataset:
+            signal = d.data.compacted(20, 10, normalized=True, 
+                                scale=AudioSynthesizer.COMPACT_SCALE_DENSITY).synthetized_signal()
+            fs = d.data.fs
+            label = d.label
+
+            feat = mfcc(signal, fs, numcep=config.nfeat, 
                           nfilt=config.nfilt, nfft=config.nfft).T
-            _min = min(np.amin(x_sample), _min)
-            _max = max(np.amax(x_sample), _max)
-            x.append(x_sample if config.mod == 'conv' else x_sample.T)
-            y.append(classes.index(label))
+                        
+            _min = min(np.amin(feat), _min)
+            _max = max(np.amax(feat), _max)
+
+            x.append(feat if config.mode == 'conv' else feat.T)
+            y.append(np.where(dataset.classes == label))
 
 config = Config(mode='conv')
 

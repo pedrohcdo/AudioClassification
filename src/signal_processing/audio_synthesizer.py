@@ -23,13 +23,11 @@ class AudioSynthesizer:
         generator.components = np.append(generator.components, [signal], axis = 0)
         return generator
     
-    def compacted(self, precision, threshold, step=1, normalized=False, padded=True, scale='none'):
+    def compacted(self, precision, threshold, normalized=False, padded=True, scale='none'):
         # Synthesise
         signals = self.synthetized_signal()
         # Convolve and remove components below the threshold 
-        # ----------- CORRECT THE STEP CONVOLVE
         framed = frame_signal(signals, np.ones((precision,)), 1, padded=padded)
-
         #convolved = np.dot(abs(framed), np.ones((framed.shape[1],)).reshape(-1,1)).reshape((-1,))
         convolved = np.sum(abs(framed), axis=1)
         assert scale in [AudioSynthesizer.COMPACT_SCALE_NONE, 
