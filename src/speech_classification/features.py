@@ -51,8 +51,21 @@ class Features:
             _min = min(np.amin(feat), _min)
             _max = max(np.amax(feat), _max)
 
+            print(len(signal))
             x.append(feat if config.mode == 'conv' else feat.T)
             y.append(np.where(dataset.classes == label))
+        
+        exit()
+        X, Y = np.array(x), np.array(y)
+        X = (X - _min) / (_max - _min)
+       
+        exit()
+        if config.mode == 'conv':
+            X = X.reshape(X.shape + (1,))
+        elif config.mode == 'time':
+            pass
+        Y = to_categorical(Y, num_classes=10)
+        return X, Y
 
 config = Config(mode='conv')
 

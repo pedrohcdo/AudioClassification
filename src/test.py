@@ -50,7 +50,7 @@ import matplotlib.pyplot as plt
 
 
 data_gen = DFDatasetGenerator(pd.read_csv('./instruments.csv'), './wavfiles', downsample=True, pruning_prop=0.3)
-dataset = data_gen.get_random(10, length_prob=0.5)
+dataset = data_gen.get_random(10, length=4000, equalize_size=True)
 feats = Features.extract_from(Config(), dataset)
 
 exit()

@@ -38,8 +38,6 @@ class AudioSynthesizer:
         elif scale == AudioSynthesizer.COMPACT_SCALE_DENSITY:
             convolved = (convolved * len(signals)) / sum(abs(signals))
         new_signal = signals[:len(convolved)][convolved>threshold]
-        
-        print(framed)
         #
         return AudioSynthesizer.from_signal(new_signal, fs=self.fs)
 

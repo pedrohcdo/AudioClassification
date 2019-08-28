@@ -44,10 +44,12 @@ class DFDatasetGenerator(Samples):
             self.df.at[filename, 'length'] = signal.shape[0]/rate
         self.df.reset_index(inplace=True)
 
-    def get_random(self, count, length_prob=1.0):
-        assert length_prob<=1.0 + sys.float_info.epsilon and length_prob>=-sys.float_info.epsilon
+    def get_random(self, count, length=None, equalize_size=True):
+        assert length == None or length>=0
         # Create prob distribution
         dataset = Dataset(self.classes)
+        signals = []
+        _min_l = float('inf')
         for _ in range(count):
             classes_mlength = self.df.groupby(['label'])['length'].mean()
             pdist = classes_mlength / classes_mlength.sum()
@@ -59,12 +61,22 @@ class DFDatasetGenerator(Samples):
             wave, rate = self.load_file(filename)
 
             #
-            wave_piece = int(len(wave) * length_prob)
+            wave_piece = min(wave.shape[0], length if length else wave.shape[0])
             rand_range = wave.shape[0] - wave_piece
             if rand_range > 0:
                 rand_index = np.random.randint(0, wave.shape[0] - wave_piece)
                 wave = wave[rand_index:rand_index+wave_piece]
             #
+            signals.append((wave, rate))
+            _min_l = min(_min_l, wave.shape[0])
+        #
+        equalized_signals = signals
+        if equalize_size:
+            equalized_signals = []
+            for (wave, rate) in signals:
+                equalized_signals.append((wave[:_min_l], rate))
+        # 
+        for (wave, rate) in equalized_signals:
             audio_synth = AudioSynthesizer.from_signal(wave, fs=rate)
             dataset.add_data(label=label, data=audio_synth)
         return dataset
