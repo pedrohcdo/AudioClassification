@@ -60,6 +60,8 @@ class DFDatasetGenerator(Samples):
             label = self.df.loc[self.df.fname==filename].label.item()
             wave, rate = self.load_file(filename)
 
+            wave = AudioSynthesizer.from_signal(wave, fs=rate).compacted(20, 10, normalized=True, 
+                    scale=AudioSynthesizer.COMPACT_SCALE_DENSITY).synthetized_signal()
             #
             wave_piece = min(wave.shape[0], length if length else wave.shape[0])
             rand_range = wave.shape[0] - wave_piece
@@ -67,16 +69,16 @@ class DFDatasetGenerator(Samples):
                 rand_index = np.random.randint(0, wave.shape[0] - wave_piece)
                 wave = wave[rand_index:rand_index+wave_piece]
             #
-            signals.append((wave, rate))
+            signals.append((label, wave, rate))
             _min_l = min(_min_l, wave.shape[0])
         #
         equalized_signals = signals
         if equalize_size:
             equalized_signals = []
-            for (wave, rate) in signals:
-                equalized_signals.append((wave[:_min_l], rate))
-        # 
-        for (wave, rate) in equalized_signals:
+            for (label, wave, rate) in signals:
+                equalized_signals.append((label, wave[:_min_l], rate))
+        #
+        for (label, wave, rate) in equalized_signals:
             audio_synth = AudioSynthesizer.from_signal(wave, fs=rate)
             dataset.add_data(label=label, data=audio_synth)
         return dataset

@@ -13,7 +13,7 @@ def stft(y, fs, step=1, window=None, nfft=None, psd=False):
 
     mat = np.empty((0, nfft//2 + 1), np.complex64)
 
-    framed_signal = frame_signal(y, window, step)
+    framed_signal = frame_signal(y, window, step, padded=False)
     
     mat = np.fft.rfft(framed_signal, n=nfft)
 

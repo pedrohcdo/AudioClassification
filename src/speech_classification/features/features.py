@@ -18,21 +18,27 @@ from sklearn.utils.class_weight import compute_class_weight
 from tqdm import tqdm
 from python_speech_features import mfcc, logfbank
 import librosa
-from ..signal_processing.audio_synthesizer import AudioSynthesizer
+from ...signal_processing.audio_synthesizer import AudioSynthesizer
+from scipy import signal as ssignal
 
-class Config:
-    def __init__(self, mode='conv', nfilt=26, nfeat=13, nfft=512, rate=16000):
-        self.mode = mode
-        self.nfilt = nfilt
-        self.nfeat = nfeat
-        self.nfft = nfft
-        self.rate = rate
-        self.step = int(self.rate / 10)
+from .config import Config, STFT, MFCC, FBANK
 
 class Features:
     def __init__(self, config):
         self.config = config
     
+    @staticmethod
+    def feature_by(config, signal, fs):
+        if isinstance(config, STFT):
+            nwin = config.window_len
+            return ssignal.stft(signal, fs=fs, noverlap=nwin-config.step, window=config.window(nwin), 
+                        nperseg=nwin, nfft=config.nfft)[2]
+        elif isinstance(config, MFCC):
+            return mfcc(signal, fs, numcep=config.nfeat, 
+                          nfilt=config.nfilt, nfft=config.nfft).T
+        elif isinstance(config, FBANK):
+            return logfbank(signal, fs, nfilt=config.nfilt, nfft=config.nfft).T
+
     @classmethod
     def extract_from(cls, config, dataset):
         feat = Features(config)
@@ -40,29 +46,24 @@ class Features:
         y = []
         _min, _max = float('inf'), -float('inf')
         for d in dataset:
-            signal = d.data.compacted(20, 10, normalized=True, 
-                                scale=AudioSynthesizer.COMPACT_SCALE_DENSITY).synthetized_signal()
+            signal = d.data.synthetized_signal()
             fs = d.data.fs
             label = d.label
 
-            feat = mfcc(signal, fs, numcep=config.nfeat, 
-                          nfilt=config.nfilt, nfft=config.nfft).T
-                        
+            feat = Features.feature_by(config, signal, fs)
+            
             _min = min(np.amin(feat), _min)
             _max = max(np.amax(feat), _max)
 
-            print(len(signal))
-            x.append(feat if config.mode == 'conv' else feat.T)
-            y.append(np.where(dataset.classes == label))
+            x.append(feat if config.mode == Config.MODE_CONV else feat.T)
+            y.append(np.where(dataset.classes == label)[0])
         
-        exit()
         X, Y = np.array(x), np.array(y)
         X = (X - _min) / (_max - _min)
        
-        exit()
-        if config.mode == 'conv':
+        if config.mode == Config.MODE_CONV:
             X = X.reshape(X.shape + (1,))
-        elif config.mode == 'time':
+        elif config.mode == Config.MODE_DEEP:
             pass
         Y = to_categorical(Y, num_classes=10)
         return X, Y

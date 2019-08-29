@@ -8,9 +8,10 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 from scipy.io import wavfile
 from python_speech_features import mfcc, logfbank
+from python_speech_features import mfcc, logfbank
 from scipy import signal
 '''
-from python_speech_features import mfcc, logfbank
+
 #
 #from signal_processing.audio_synthesizer import AudioSynthesizer
 #from signal_processing.helper import play_audio
@@ -42,7 +43,7 @@ from .signal_processing.audio_synthesizer import AudioSynthesizer
 from .speech_classification.dataset import DFDatasetGenerator
 from .signal_processing.helper import play_audio
 from .signal_processing.utils import frame_signal
-from .speech_classification.features import Config, Features
+from .speech_classification.features import MFCC, STFT, FBANK, Features
 import librosa
 from scipy import signal
 import matplotlib.pyplot as plt
@@ -51,7 +52,11 @@ import matplotlib.pyplot as plt
 
 data_gen = DFDatasetGenerator(pd.read_csv('./instruments.csv'), './wavfiles', downsample=True, pruning_prop=0.3)
 dataset = data_gen.get_random(10, length=4000, equalize_size=True)
-feats = Features.extract_from(Config(), dataset)
+
+feats1 = Features.extract_from(STFT(STFT.MODE_CONV), dataset)
+feats2 = Features.extract_from(MFCC(MFCC.MODE_CONV), dataset)
+feats3 = Features.extract_from(FBANK(FBANK.MODE_CONV), dataset)
+
 
 exit()
 
@@ -66,9 +71,6 @@ for data in dataset:
 
     play_audio(original)
     play_audio(compacted)
-
-
-
 
 
 
@@ -198,4 +200,26 @@ plt.pcolormesh(t, f, np.abs(Zxx), cmap='hot')
 plt.figure(2)
 plt.pcolormesh(t2, f2, np.abs(Zxx2), cmap='hot')
 plt.show()
+
+
+
+
+from .signal_processing.stft import stft
+
+a = AudioSynthesizer(5 * 200, 200)
+a.generate_progressive_signal(50, 25/5)
+
+fs = 200
+audio = a.synthetized_signal()
+
+# Compare Short Time Fourier Transform 
+nwin = int(fs * 0.1) # 25ms
+step = int(fs * 0.01) # 10ms
+
+f2, t2, Zxx2 = stft(audio, fs, step=step, window=np.hamming(nwin), nfft=100)
+
+
+plt.pcolormesh(t2, f2, np.abs(Zxx2), cmap='hot')
+plt.show()
+
 '''

@@ -7,4 +7,4 @@ Created on Tue Aug 20 22:51:47 2019
 """
 
 from .dataset import Dataset, DFDatasetGenerator
-from .features import Config, Features
+from .features import Features
