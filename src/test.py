@@ -48,15 +48,54 @@ import librosa
 from scipy import signal
 import matplotlib.pyplot as plt
 
+from keras.models import Sequential
+from keras.layers import Conv2D, Dense, Activation, MaxPool2D, Dropout, Flatten
+
+from .signal_processing.stft import stft
+from sklearn.utils.class_weight import compute_class_weight
+
+
+def get_conv_model(input_shape, classes_size):
+    model = Sequential()
+    #
+    model.add(Conv2D(16, (3, 3), activation='relu', strides=(1, 1), padding='same', input_shape=input_shape))
+    model.add(Conv2D(32, (3, 3), activation='relu', strides=(1, 1), padding='same', input_shape=input_shape))
+    # 
+    model.add(MaxPool2D((2, 2)))
+    model.add(Dropout(0.3))
+    #
+    model.add(Conv2D(64, (3, 3), activation='relu', strides=(1, 1), padding='same', input_shape=input_shape))
+    model.add(Conv2D(128, (3, 3), activation='relu', strides=(1, 1), padding='same', input_shape=input_shape))
+    #
+    model.add(MaxPool2D((2, 2)))
+    model.add(Flatten())
+    model.add(Dense(128, activation='relu'))
+    model.add(Dense(64, activation='relu'))
+    model.add(Dense(classes_size, activation='softmax'))
+    model.summary()
+    model.compile(loss='categorical_crossentropy',
+                    optimizer='adam',
+                    metrics=['acc'])
+    return model
+
 
 
 data_gen = DFDatasetGenerator(pd.read_csv('./instruments.csv'), './wavfiles', downsample=True, pruning_prop=0.3)
 dataset = data_gen.get_random(10, length=4000, equalize_size=True)
 
-feats1 = Features.extract_from(STFT(STFT.MODE_CONV), dataset)
-feats2 = Features.extract_from(MFCC(MFCC.MODE_CONV), dataset)
-feats3 = Features.extract_from(FBANK(FBANK.MODE_CONV), dataset)
+X1, Y1 = Features.extract_from(STFT(STFT.MODE_CONV), dataset)
+#X2, Y2 = Features.extract_from(MFCC(MFCC.MODE_CONV), dataset)
+#X3, Y3 = Features.extract_from(FBANK(FBANK.MODE_CONV), dataset)
 
+y_flat = np.argmax(Y1, axis=1)
+cw = compute_class_weight('balanced', np.unique(y_flat), y_flat)
+
+model = get_conv_model((X1.shape[1], X1.shape[2], 1), len(dataset.classes))
+
+model.fit(X1, Y1, epochs=1000, batch_size=32, shuffle=True, class_weight=cw)
+
+print(model.predict(X1[0].reshape(1, X1.shape[1], X1.shape[2], 1), batch_size=32))
+print(Y1[0])
 
 exit()
 
@@ -204,22 +243,5 @@ plt.show()
 
 
 
-from .signal_processing.stft import stft
-
-a = AudioSynthesizer(5 * 200, 200)
-a.generate_progressive_signal(50, 25/5)
-
-fs = 200
-audio = a.synthetized_signal()
-
-# Compare Short Time Fourier Transform 
-nwin = int(fs * 0.1) # 25ms
-step = int(fs * 0.01) # 10ms
-
-f2, t2, Zxx2 = stft(audio, fs, step=step, window=np.hamming(nwin), nfft=100)
-
-
-plt.pcolormesh(t2, f2, np.abs(Zxx2), cmap='hot')
-plt.show()
 
 '''
