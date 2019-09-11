@@ -1,3 +1,30 @@
+# IMPLEMENTING
+def bilinear_interpolation():
+    pass
+
+
+def centered_scale(w1, w2, x):
+    w1 -= 0.5
+    w2 -= 0.5
+    b = (-0.5*w2 + 0.5*w1) / (w2 + 0.5)
+    a = (w1 - b) / w2
+    return round(a * x + b)
+
+def related_scale(w1, w2, x):
+    return round((x / (w2-1)) * (w1-1))
+
+w1 = 4
+w2 = 11
+
+for i in range(0, w2):
+    t1 = centered_scale(w1, w2, i)
+    t2 = related_scale(w1, w2, i)
+
+    print("{}, {}, {}".format(i, t1, t2))
+
+
+exit()
+
 '''
 import numpy as np
 import simpleaudio as sa
@@ -53,6 +80,8 @@ from keras.layers import Conv2D, Dense, Activation, MaxPool2D, Dropout, Flatten
 
 from .signal_processing.stft import stft
 from sklearn.utils.class_weight import compute_class_weight
+
+
 
 
 def get_conv_model(input_shape, classes_size):

@@ -16,12 +16,11 @@ def stride_shape(signal, stride_len, step=1):
 
 def stride_signal(signal, stride_len, step=1):
     new_shape = stride_shape(signal, stride_len, step)
-    # Repeat last stride, because the step for each row is s=8*row
+    # signal.strides[-1] * step -> to move steps
+    # And repeat last stride -> to move items of row
     new_strides = signal.strides[:-1] + (signal.strides[-1] * step, signal.strides[-1],)
     #
     return np.lib.stride_tricks.as_strided(signal, shape=new_shape, strides=new_strides)
-
-
 
 def frame_signal(signal, window, step, padded=True):
     """

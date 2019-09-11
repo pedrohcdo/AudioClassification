@@ -20,6 +20,8 @@ def slow_fft(signal, nfft=None):
         nfft = signal.shape[0]
 
     # Adjust
+    # according to nyquist theorem, to get frequencies bigger than  signal size
+    # need to extend the fs (or in other words extend signal) 
     if nfft > signal.shape[0]:
         signal = np.append(signal, np.zeros(nfft - signal.shape[0]))
     signal = signal[:nfft]
