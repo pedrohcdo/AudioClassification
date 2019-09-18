@@ -1,29 +1,4 @@
-# IMPLEMENTING
-def bilinear_interpolation():
-    pass
 
-
-def centered_scale(w1, w2, x):
-    w1 -= 0.5
-    w2 -= 0.5
-    b = (-0.5*w2 + 0.5*w1) / (w2 + 0.5)
-    a = (w1 - b) / w2
-    return round(a * x + b)
-
-def related_scale(w1, w2, x):
-    return round((x / (w2-1)) * (w1-1))
-
-w1 = 4
-w2 = 11
-
-for i in range(0, w2):
-    t1 = centered_scale(w1, w2, i)
-    t2 = related_scale(w1, w2, i)
-
-    print("{}, {}, {}".format(i, t1, t2))
-
-
-exit()
 
 '''
 import numpy as np
@@ -76,55 +51,86 @@ from scipy import signal
 import matplotlib.pyplot as plt
 
 from keras.models import Sequential
-from keras.layers import Conv2D, Dense, Activation, MaxPool2D, Dropout, Flatten
+from keras.layers import Conv2D, Dense, Activation, MaxPool2D, Dropout, Flatten, UpSampling2D
+
+from keras.callbacks import ModelCheckpoint
 
 from .signal_processing.stft import stft
 from sklearn.utils.class_weight import compute_class_weight
-
+from keras import optimizers
 
 
 
 def get_conv_model(input_shape, classes_size):
     model = Sequential()
     #
+    #model.add(UpSampling2D(size=(2,2), interpolation='bilinear', input_shape=input_shape))
     model.add(Conv2D(16, (3, 3), activation='relu', strides=(1, 1), padding='same', input_shape=input_shape))
-    model.add(Conv2D(32, (3, 3), activation='relu', strides=(1, 1), padding='same', input_shape=input_shape))
-    # 
+    model.add(Conv2D(32, (3, 3), activation='relu', strides=(1, 1), padding='same'))
     model.add(MaxPool2D((2, 2)))
-    model.add(Dropout(0.3))
+    model.add(Dropout(rate=0.1))
+    
+    model.add(Conv2D(64, (3, 3), activation='relu', strides=(1, 1), padding='same'))
+    model.add(Conv2D(128, (3, 3), activation='relu', strides=(1, 1), padding='same'))
     #
-    model.add(Conv2D(64, (3, 3), activation='relu', strides=(1, 1), padding='same', input_shape=input_shape))
-    model.add(Conv2D(128, (3, 3), activation='relu', strides=(1, 1), padding='same', input_shape=input_shape))
-    #
+    #model.add(Dropout(0.1))
+    #model.add(Conv2D(64, (3, 3), activation='relu', strides=(1, 1), padding='valid'))
     model.add(MaxPool2D((2, 2)))
+    model.add(Dropout(rate=0.4))
+    #
     model.add(Flatten())
     model.add(Dense(128, activation='relu'))
     model.add(Dense(64, activation='relu'))
     model.add(Dense(classes_size, activation='softmax'))
     model.summary()
-    model.compile(loss='categorical_crossentropy',
-                    optimizer='adam',
-                    metrics=['acc'])
+
+    sgd = optimizers.SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
+
+    model.compile(loss='mean_squared_error',
+                    optimizer=sgd,
+                    metrics=['accuracy'])
     return model
 
 
 
-data_gen = DFDatasetGenerator(pd.read_csv('./instruments.csv'), './wavfiles', downsample=True, pruning_prop=0.3)
-dataset = data_gen.get_random(10, length=4000, equalize_size=True)
+data_gen = DFDatasetGenerator(pd.read_csv('./instruments.csv'), './wavfiles', downsample=True, pruning_prop=0)
+#dataset = data_gen.get_random(20, length=2000, equalize_size=True)
+dataset = data_gen.get_random_on_classes(20, length=1600, equalize_size=True)
 
-X1, Y1 = Features.extract_from(STFT(STFT.MODE_CONV), dataset)
-#X2, Y2 = Features.extract_from(MFCC(MFCC.MODE_CONV), dataset)
+#X1, Y1 = Features.extract_from(STFT(STFT.MODE_CONV), dataset)
+feat = Features.extract_from(MFCC(MFCC.MODE_CONV), dataset, normalize_range=(-58.311791046970626, 62.02350345004652))
+X1 = feat.X
+Y1 = feat.Y
+nr = feat.normalize_range
+
 #X3, Y3 = Features.extract_from(FBANK(FBANK.MODE_CONV), dataset)
 
 y_flat = np.argmax(Y1, axis=1)
 cw = compute_class_weight('balanced', np.unique(y_flat), y_flat)
 
+print(X1.shape)
+print("---------------")
+
 model = get_conv_model((X1.shape[1], X1.shape[2], 1), len(dataset.classes))
 
-model.fit(X1, Y1, epochs=1000, batch_size=32, shuffle=True, class_weight=cw)
+#filepath = 'first_model.h5'
+#checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=1, save_best_only=True, mode='max')
+#callbacks_list = [checkpoint]
 
-print(model.predict(X1[0].reshape(1, X1.shape[1], X1.shape[2], 1), batch_size=32))
-print(Y1[0])
+#model.fit(X1, Y1, epochs=2000, batch_size=64, validation_split=0.3, shuffle=True, callbacks=callbacks_list)
+#print(nr)
+#exit()
+
+#model.save(filepath)
+
+model.load_weights('first_model.h5')
+
+p = model.predict(X1, batch_size=64)
+mx = np.max(p, axis=1).reshape((-1, 1))
+p[p < mx] = 0
+
+print(np.around(p))
+print(Y1)
 
 exit()
 

@@ -9,7 +9,7 @@ import collections
 
 class Samples:
     
-    DOWNSAMPLE_SR = 8000
+    DOWNSAMPLE_SR = 16000
     DOWNSAMPLE_SUB_FOLDER = "/ds"
     
     def __init__(self, folder, files):

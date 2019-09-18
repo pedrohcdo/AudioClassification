@@ -26,6 +26,9 @@ from .config import Config, STFT, MFCC, FBANK
 class Features:
     def __init__(self, config):
         self.config = config
+        self.X = None
+        self.Y = None
+        self.normalize_range = None
     
     @staticmethod
     def feature_by(config, signal, fs):
@@ -40,7 +43,7 @@ class Features:
             return logfbank(signal, fs, nfilt=config.nfilt, nfft=config.nfft).T
 
     @classmethod
-    def extract_from(cls, config, dataset):
+    def extract_from(cls, config, dataset, normalize_range=None):
         feat = Features(config)
         x = []
         y = []
@@ -50,15 +53,19 @@ class Features:
             fs = d.data.fs
             label = d.label
 
-            feat = Features.feature_by(config, signal, fs)
+            feat_by = Features.feature_by(config, signal, fs)
             
-            _min = min(np.amin(feat), _min)
-            _max = max(np.amax(feat), _max)
+            _min = min(np.amin(feat_by), _min)
+            _max = max(np.amax(feat_by), _max)
 
-            x.append(feat if config.mode == Config.MODE_CONV else feat.T)
+            x.append(feat_by if config.mode == Config.MODE_CONV else feat_by.T)
             y.append(np.where(dataset.classes == label)[0])
         
         X, Y = np.array(x), np.array(y)
+        #
+        if normalize_range is not None:
+            _min, _max = normalize_range
+        # Normalize
         X = (X - _min) / (_max - _min)
        
         if config.mode == Config.MODE_CONV:
@@ -66,8 +73,11 @@ class Features:
         elif config.mode == Config.MODE_DEEP:
             pass
         Y = to_categorical(Y, num_classes=10)
-        return X, Y
 
-config = Config(mode='conv')
+        feat.X = X
+        feat.Y = Y
+        feat.normalize_range = (_min, _max)
+
+        return feat
 
 
