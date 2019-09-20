@@ -58,36 +58,41 @@ from keras.callbacks import ModelCheckpoint
 from .signal_processing.stft import stft
 from sklearn.utils.class_weight import compute_class_weight
 from keras import optimizers
+from keras.models import load_model
+import keras
+from keras.constraints import max_norm
 
 
-
-def get_conv_model(input_shape, classes_size):
+def get_conv_model(input_shape, classes_size, load=False):
     model = Sequential()
     #
     #model.add(UpSampling2D(size=(2,2), interpolation='bilinear', input_shape=input_shape))
-    model.add(Conv2D(16, (3, 3), activation='relu', strides=(1, 1), padding='same', input_shape=input_shape))
-    model.add(Conv2D(32, (3, 3), activation='relu', strides=(1, 1), padding='same'))
+    model.add(Conv2D(32, (2, 2), activation='relu', strides=(1, 1), input_shape=input_shape))
+    model.add(Conv2D(64, (2, 2), activation='relu', strides=(1, 1)))
+    model.add(Conv2D(128, (2, 2), activation='relu', strides=(1, 1)))
     model.add(MaxPool2D((2, 2)))
-    model.add(Dropout(rate=0.1))
-    
-    model.add(Conv2D(64, (3, 3), activation='relu', strides=(1, 1), padding='same'))
-    model.add(Conv2D(128, (3, 3), activation='relu', strides=(1, 1), padding='same'))
+    model.add(Dropout(rate=0.35))
+    model.add(Flatten())
+
+    #model.add(Conv2D(64, (3, 3), activation='relu', strides=(1, 1), padding='same'))
+    #model.add(Conv2D(128, (3, 3), activation='relu', strides=(1, 1), padding='same'))
     #
     #model.add(Dropout(0.1))
     #model.add(Conv2D(64, (3, 3), activation='relu', strides=(1, 1), padding='valid'))
-    model.add(MaxPool2D((2, 2)))
-    model.add(Dropout(rate=0.4))
+    #model.add(MaxPool2D((2, 2)))
+    
     #
-    model.add(Flatten())
+    
     model.add(Dense(128, activation='relu'))
     model.add(Dense(64, activation='relu'))
+    model.add(Dropout(rate=0.4))
     model.add(Dense(classes_size, activation='softmax'))
     model.summary()
 
-    sgd = optimizers.SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
+    sgd = optimizers.SGD(lr=0.003, decay=1e-6, momentum=0.9, nesterov=True)
 
-    model.compile(loss='mean_squared_error',
-                    optimizer=sgd,
+    model.compile(loss='categorical_crossentropy',
+                    optimizer='adam',
                     metrics=['accuracy'])
     return model
 
@@ -95,37 +100,41 @@ def get_conv_model(input_shape, classes_size):
 
 data_gen = DFDatasetGenerator(pd.read_csv('./instruments.csv'), './wavfiles', downsample=True, pruning_prop=0)
 #dataset = data_gen.get_random(20, length=2000, equalize_size=True)
-dataset = data_gen.get_random_on_classes(20, length=1600, equalize_size=True)
+dataset = data_gen.get_random_on_classes(20, classes=10, length=16000, equalize_size=False)
 
 #X1, Y1 = Features.extract_from(STFT(STFT.MODE_CONV), dataset)
-feat = Features.extract_from(MFCC(MFCC.MODE_CONV), dataset, normalize_range=(-58.311791046970626, 62.02350345004652))
-X1 = feat.X
-Y1 = feat.Y
+feat = Features.extract_from(MFCC(MFCC.MODE_CONV, window_step=0.005), dataset, max_len=100)
+
+TX, TY = feat.training
+TSX, TSY = feat.testing
+
 nr = feat.normalize_range
+
+
 
 #X3, Y3 = Features.extract_from(FBANK(FBANK.MODE_CONV), dataset)
 
-y_flat = np.argmax(Y1, axis=1)
-cw = compute_class_weight('balanced', np.unique(y_flat), y_flat)
+#y_flat = np.argmax(Y1, axis=1)
+#cw = compute_class_weight('balanced', np.unique(y_flat), y_flat)
 
-print(X1.shape)
-print("---------------")
+model = get_conv_model((TX.shape[1], TX.shape[2], 1), len(dataset.classes))
 
-model = get_conv_model((X1.shape[1], X1.shape[2], 1), len(dataset.classes))
+filepath = 'first_model.h5'
+checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=1, save_best_only=True, mode='max', save_weights_only=True)
+callbacks_list = [checkpoint]
 
-#filepath = 'first_model.h5'
-#checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=1, save_best_only=True, mode='max')
-#callbacks_list = [checkpoint]
+model.fit(TX, TY, epochs=3000, batch_size=100, shuffle=False, 
+            callbacks=callbacks_list, validation_data=(TSX, TSY))
+print(nr)
+exit()
 
-#model.fit(X1, Y1, epochs=2000, batch_size=64, validation_split=0.3, shuffle=True, callbacks=callbacks_list)
-#print(nr)
-#exit()
 
-#model.save(filepath)
 
-model.load_weights('first_model.h5')
+model = load_model("first_model.h5")
 
-p = model.predict(X1, batch_size=64)
+
+
+p = model.predict(X1, batch_size=32)
 mx = np.max(p, axis=1).reshape((-1, 1))
 p[p < mx] = 0
 

@@ -17,7 +17,8 @@ import collections
 from .samples import Samples
 from .dataset import Dataset
 from ...signal_processing.audio_synthesizer import AudioSynthesizer
-    
+from ...signal_processing.helper import play_audio
+
 class DFDatasetGenerator(Samples):
     
     FILENAME_COLUMN = 'fname'
@@ -29,7 +30,8 @@ class DFDatasetGenerator(Samples):
         super().__init__(folder, df.fname)
         if downsample:
             self.downsample()
-        self.classes = np.unique(df.label)
+        self.classes = list(np.unique(df.label))
+
         #
         for _ in range(0, int(pruning_prop * len(df[DFDatasetGenerator.FILENAME_COLUMN]))):
             df.drop(np.random.choice(df.index), inplace=True)
@@ -44,30 +46,36 @@ class DFDatasetGenerator(Samples):
             self.df.at[filename, 'length'] = signal.shape[0]/rate
         self.df.reset_index(inplace=True)
 
-    def get_random_on_classes(self, count, length=None, equalize_size=True):
+    def get_random_on_classes(self, count, classes, length=None, equalize_size=True):
         assert length == None or length>=0
         dataset = Dataset(self.classes)
         _max_l = float('-inf')
         signals = []
+        x = 0
         for label in self.classes:
             for _ in range(count):
                 #
                 filename = np.random.choice(self.df[self.df.label==label].fname)
+                self.df.drop(self.df[self.df.fname==filename].index, inplace=True)
                 #
-                label = self.df.loc[self.df.fname==filename].label.item()
                 wave, rate = self.load_file(filename)
-
-                wave = AudioSynthesizer.from_signal(wave, fs=rate).compacted(20, 10, normalized=True, 
+                
+                wave = AudioSynthesizer.from_signal(wave, fs=rate).compacted(30, 10, normalized=True, 
                         scale=AudioSynthesizer.COMPACT_SCALE_DENSITY).synthetized_signal()
                 #
                 wave_piece = min(wave.shape[0], length if length else wave.shape[0])
+                
+                wave_piece = min(wave.shape[0], length if length else wave.shape[0])
                 rand_range = wave.shape[0] - wave_piece
                 if rand_range > 0:
-                    rand_index = np.random.randint(0, wave.shape[0] - wave_piece)
+                    rand_index = np.random.randint(0, int(rand_range * 0.4))
                     wave = wave[rand_index:rand_index+wave_piece]
                 #
                 signals.append((label, wave, rate))
                 _max_l = max(_max_l, wave.shape[0])
+            x += 1
+            if x >= classes:
+                break
         #
         equalized_signals = signals
         if equalize_size:
