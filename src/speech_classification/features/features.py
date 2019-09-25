@@ -44,7 +44,7 @@ class Features:
             return logfbank(signal, fs, nfilt=config.nfilt, nfft=config.nfft).T
 
     @classmethod
-    def extract_from(cls, config, dataset, max_len, normalize_range=None, testing_split=0.2):
+    def extract_from(cls, config, dataset, max_len, normalize_range=None, testing_split=0.2, self_normalize=False):
         assert testing_split >= 0 and testing_split <= 1
         feat = Features(config)
         sets = {}
@@ -52,22 +52,27 @@ class Features:
 
         _min, _max = float('inf'), -float('inf')
         for d in dataset:
-            signal = d.data.synthetized_signal()
-            fs = d.data.fs
+            signal = d.data
+            fs = d.fs
             label = d.label
-            
+
             if label not in sets:
                 sets[label] = []
 
-
+            
             feat_by = Features.feature_by(config, signal, fs)
             if (max_len > feat_by.shape[1]):
                 pad_width = max_len - feat_by.shape[1]
                 feat_by = np.pad(feat_by, pad_width=((0, 0), (0, pad_width)), mode='constant')
             feat_by = feat_by[:, :max_len]
 
-            _min = min(np.amin(feat_by), _min)
-            _max = max(np.amax(feat_by), _max)
+            fmin = np.amin(feat_by)
+            fmax = np.amax(feat_by)
+            _min = min(fmin, _min)
+            _max = max(fmax, _max)
+
+            if self_normalize:
+                feat_by = (feat_by - fmin) / (fmax - fmin)
 
             x = feat_by if config.mode == Config.MODE_CONV else feat_by.T
             y = dataset.classes.index(label)
@@ -88,7 +93,11 @@ class Features:
 
 
         tx, ty = zip(*training)
-        tsx, tsy = zip(*testing)
+
+        if len(testing) > 0:
+            tsx, tsy = zip(*testing)
+        else:
+            tsx = tsy = []
 
         TX, TY = np.array(tx), np.array(ty)
         TSX, TSY = np.array(tsx), np.array(tsy)
@@ -96,20 +105,22 @@ class Features:
         #
         if normalize_range is not None:
             _min, _max = normalize_range
-        # Normalize
-        #X = (X - _min) / (_max - _min)
-       
+        if not self_normalize:
+            # Normalize
+            TX = (TX - _min) / (_max - _min)
+            TSX = (TSX - _min) / (_max - _min)
+
         if config.mode == Config.MODE_CONV:
             TX = TX.reshape(TX.shape + (1,))
             TSX = TSX.reshape(TSX.shape + (1,))
         elif config.mode == Config.MODE_DEEP:
             pass
-        TY = to_categorical(TY, num_classes=10)
-        TSY = to_categorical(TSY, num_classes=10)
+        CTY = to_categorical(TY, num_classes=len(dataset.classes))
+        CTSY = to_categorical(TSY, num_classes=len(dataset.classes))
         
         feat.normalize_range = (_min, _max)
-        feat.training = (TX, TY)
-        feat.testing = (TSX, TSY)
+        feat.training = (TX, CTY, TY)
+        feat.testing = (TSX, CTSY)
         
         return feat
 

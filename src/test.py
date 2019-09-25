@@ -63,83 +63,96 @@ import keras
 from keras.constraints import max_norm
 
 
-def get_conv_model(input_shape, classes_size, load=False):
+def get_conv_model(input_shape, classes_size):
     model = Sequential()
     #
     #model.add(UpSampling2D(size=(2,2), interpolation='bilinear', input_shape=input_shape))
-    model.add(Conv2D(32, (2, 2), activation='relu', strides=(1, 1), input_shape=input_shape))
-    model.add(Conv2D(64, (2, 2), activation='relu', strides=(1, 1)))
-    model.add(Conv2D(128, (2, 2), activation='relu', strides=(1, 1)))
+    model.add(Conv2D(32, (2, 2), activation='relu', padding='same', input_shape=input_shape,
+            kernel_regularizer=keras.regularizers.l2(0.01), 
+            bias_regularizer=keras.regularizers.l2(0.01)))
+    model.add(Conv2D(64, (2, 2), activation='relu',
+            kernel_regularizer=keras.regularizers.l2(0.01), 
+            bias_regularizer=keras.regularizers.l2(0.01)))
     model.add(MaxPool2D((2, 2)))
-    model.add(Dropout(rate=0.35))
+    model.add(Dropout(rate=0.3))
     model.add(Flatten())
-
-    #model.add(Conv2D(64, (3, 3), activation='relu', strides=(1, 1), padding='same'))
-    #model.add(Conv2D(128, (3, 3), activation='relu', strides=(1, 1), padding='same'))
-    #
-    #model.add(Dropout(0.1))
-    #model.add(Conv2D(64, (3, 3), activation='relu', strides=(1, 1), padding='valid'))
-    #model.add(MaxPool2D((2, 2)))
-    
-    #
-    
-    model.add(Dense(128, activation='relu'))
-    model.add(Dense(64, activation='relu'))
-    model.add(Dropout(rate=0.4))
+    model.add(Dense(128, activation='relu', 
+            kernel_regularizer=keras.regularizers.l2(0.01), 
+            bias_regularizer=keras.regularizers.l2(0.001)))
+    model.add(Dropout(rate=0.25))
     model.add(Dense(classes_size, activation='softmax'))
     model.summary()
 
-    sgd = optimizers.SGD(lr=0.003, decay=1e-6, momentum=0.9, nesterov=True)
+    sgd = optimizers.SGD(lr=0.004, decay=1e-6, momentum=0.9, nesterov=True)
 
     model.compile(loss='categorical_crossentropy',
-                    optimizer='adam',
+                    optimizer=keras.optimizers.Adadelta(),
                     metrics=['accuracy'])
     return model
 
 
 
-data_gen = DFDatasetGenerator(pd.read_csv('./instruments.csv'), './wavfiles', downsample=True, pruning_prop=0)
-#dataset = data_gen.get_random(20, length=2000, equalize_size=True)
-dataset = data_gen.get_random_on_classes(20, classes=10, length=16000, equalize_size=False)
+def train_model(filepath):
+    data_gen = DFDatasetGenerator(pd.read_csv('./instruments.csv'), './wavfiles', downsample=True, pruning_prop=0)
+    #dataset = data_gen.get_random(20, length=2000, equalize_size=True)
+    dataset = data_gen.get_random_on_classes(30, length=15000)
 
-#X1, Y1 = Features.extract_from(STFT(STFT.MODE_CONV), dataset)
-feat = Features.extract_from(MFCC(MFCC.MODE_CONV, window_step=0.005), dataset, max_len=100)
+    print(dataset.classes)
 
-TX, TY = feat.training
-TSX, TSY = feat.testing
+    exit()
 
-nr = feat.normalize_range
+    #X1, Y1 = Features.extract_from(STFT(STFT.MODE_CONV), dataset)
+    feat = Features.extract_from(MFCC(MFCC.MODE_CONV, window=lambda x: np.hamming(x)), dataset, max_len=80, testing_split=0.01)
 
+    TX, CTY, TY = feat.training
+    TSX, CTSY = feat.testing
 
-
-#X3, Y3 = Features.extract_from(FBANK(FBANK.MODE_CONV), dataset)
-
-#y_flat = np.argmax(Y1, axis=1)
-#cw = compute_class_weight('balanced', np.unique(y_flat), y_flat)
-
-model = get_conv_model((TX.shape[1], TX.shape[2], 1), len(dataset.classes))
-
-filepath = 'first_model.h5'
-checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=1, save_best_only=True, mode='max', save_weights_only=True)
-callbacks_list = [checkpoint]
-
-model.fit(TX, TY, epochs=3000, batch_size=100, shuffle=False, 
-            callbacks=callbacks_list, validation_data=(TSX, TSY))
-print(nr)
-exit()
+    nr = feat.normalize_range
 
 
 
-model = load_model("first_model.h5")
+    #X3, Y3 = Features.extract_from(FBANK(FBANK.MODE_CONV), dataset)
+
+    #y_flat = np.argmax(Y1, axis=1)
+    #cw = compute_class_weight('balanced', np.unique(TY), TY)
+
+    #model = get_conv_model((TX.shape[1], TX.shape[2], 1), len(dataset.classes))
+
+    #checkpoint = ModelCheckpoint(filepath, monitor='val_accuracy', verbose=1, save_best_only=True, mode='max')
+    #callbacks_list = [checkpoint]
+
+    #model.fit(TX, CTY, epochs=200000, batch_size=32, shuffle=False, class_weight=cw,
+    #            callbacks=callbacks_list, validation_data=(TSX, CTSY))
+    #print(nr)
+    #exit()
+
+
+def test_model(filepath):
+    df = pd.DataFrame([['violin.mp3', 'violin'],
+                       ['flute.wav', 'flute'],
+                       ['aguitar.mp3', 'aguitar'],
+                       ], columns=['fname', 'label'])
+
+    data_gen = DFDatasetGenerator(df, './', downsample=True)
+    dataset = data_gen.get_random_on_classes(length=4000)
+    feat = Features.extract_from(MFCC(MFCC.MODE_CONV, window=lambda x: np.hamming(x)), dataset, max_len=80, testing_split=0.01, normalize_range=(-120.84730734274068, 109.68556357548314))
+
+    TX, CTY, TY = feat.training
+    TSX, CTSY = feat.testing
+
+    model = load_model(filepath)
+    model_labels = ['Acoustic_guitar', 'Bass_drum', 'Cello', 'Clarinet', 'Double_bass', 'Flute', 'Hi-hat', 'Saxophone', 'Snare_drum', 'Violin_or_fiddle']
+
+    p = model.predict(TX, batch_size=32)
+    mx = np.argmax(p, axis=1)
+
+    for i in range(mx.shape[0]):
+        print("Real: {} | Predict: {}".format( dataset.classes[TY[i]], model_labels[mx[i]] ))
 
 
 
-p = model.predict(X1, batch_size=32)
-mx = np.max(p, axis=1).reshape((-1, 1))
-p[p < mx] = 0
+test_model("first_model.h5")
 
-print(np.around(p))
-print(Y1)
 
 exit()
 

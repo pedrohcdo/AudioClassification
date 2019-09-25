@@ -23,7 +23,7 @@ class FBANK(Config):
         self.nfft = nfft
 
 class MFCC(Config):
-    def __init__(self, mode, nfilt=26, nfft=512, nfeat=13, window_len=0.025, window_step=0.01, window=lambda x:np.ones((x,))):
+    def __init__(self, mode, nfilt=26, nfft=512, nfeat=14, window_len=0.025, window_step=0.005, window=lambda x:np.ones((x,))):
         super().__init__(mode)
         self.nfilt = nfilt
         self.nfeat = nfeat
