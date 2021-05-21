@@ -23,7 +23,7 @@ setup(
         'librosa',
         'simpleaudio',
         'scipy',
-        'tensorflow==2.0.0b1'
+        'tensorflow==2.5.0rc0'
     ],
     #include_package_data=True,
     license='MIT',
